@@ -338,7 +338,18 @@ func (a *App) routes() http.Handler {
 
 	// 원형 메뉴 화면 (도우미와 같은 파일 — 앱의 "도우미" 화면에서 체험용으로 보여 줘요)
 	ringFS, _ := fs.Sub(agentFiles, "agent")
-	mux.Handle("/ring/", http.StripPrefix("/ring/", http.FileServer(http.FS(ringFS))))
+	ringFiles := http.StripPrefix("/ring/", http.FileServer(http.FS(ringFS)))
+	mux.HandleFunc("/ring/", func(w http.ResponseWriter, r *http.Request) {
+		// 도우미 폴더에서는 글꼴이 ring.html 옆에 복사돼요 — 체험 화면에서도 같은 글꼴을 줘요
+		if strings.HasSuffix(r.URL.Path, ".woff2") {
+			if b, err := webFiles.ReadFile("web/fonts/" + filepath.Base(r.URL.Path)); err == nil {
+				w.Header().Set("Content-Type", "font/woff2")
+				w.Write(b)
+				return
+			}
+		}
+		ringFiles.ServeHTTP(w, r)
+	})
 
 	api := func(path string, h http.HandlerFunc) {
 		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {

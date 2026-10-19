@@ -322,7 +322,12 @@ func outDirFor(req Request, src string) string {
 	if !dirWritable(dir) {
 		dir = s.OutDir
 		if !dirWritable(dir) {
+			// 기본 폴더가 지워졌거나 아직 없으면 만들어서 써요
+			if dir != "" && os.MkdirAll(dir, 0o755) == nil && dirWritable(dir) {
+				return dir
+			}
 			dir = downloadsFolder()
+			os.MkdirAll(dir, 0o755)
 		}
 	}
 	return dir
