@@ -52,6 +52,13 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 - `python3 scripts/test/make_samples.py <dir>` → `run_matrix.py <engine> <dir> <out>`
 - Playwright는 `LANG=C.UTF-8`로 실행해야 한글 파일명이 들어감 (시험 환경 문제, 앱 문제 아님)
 
+## ⏸ 상태: 중단 (2026-10-19 17:07) — 사용자가 개발을 멈추고 앱 삭제를 요청함
+- 마지막 발견(1.0.3 기록): 엔진이 켜지고 1~5초 뒤 **SIGTERM**을 받고 꺼짐 (launchd로 띄워도 같음). 보낸 쪽은 아직 모름.
+  다른 앱(SROAD·YTROAD·LIBROAD)은 같은 nohup 방식인데 잘 됨 → "실행기 종료 시 함께 꺼짐" 가설은 틀림.
+  다음 의심: 엔진 시작 직후 도는 agent.Sync(launchctl bootstrap/kickstart, ~/Library/Services 설치 + `pbs -flush/-update`)·도우미(agent.js) 쪽.
+  재개하면: Sync·installServices를 끈 빌드로 SIGTERM이 사라지는지부터 확인할 것.
+- 사용자 맥 정리 방법은 대화에서 안내함 (앱·Support·Logs·LaunchAgents·Services 삭제 후 재시동).
+
 ## 진행 사항
 - [x] 아이콘 (app/)
 - [x] 엔진 소스 전체 (약 9,400줄) — `GOOS=darwin GOARCH=arm64` 컴파일 성공 (2026-10-19)
