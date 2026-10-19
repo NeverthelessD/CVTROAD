@@ -16,6 +16,11 @@ SUPPORT="$HOME/Library/Application Support/CVTROAD"
 BIN="$SUPPORT/bin"
 BUILD="$(cat "$RES/version.txt" 2>/dev/null)"
 mkdir -p "$BIN"
+LOGS="$HOME/Library/Logs/CVTROAD"
+mkdir -p "$LOGS"
+lg() { printf '%s launcher: %s\n' "$(date '+%Y/%m/%d %H:%M:%S')" "$*" >> "$LOGS/launcher.log" 2>/dev/null; }
+[ "$(stat -f%z "$LOGS/launcher.log" 2>/dev/null || echo 0)" -gt 1048576 ] && : > "$LOGS/launcher.log"
+lg "시작 (v$BUILD, restart=${CVTROAD_RESTART:-})"
 
 dialog() {
   osascript -e 'on run argv' \
@@ -53,8 +58,9 @@ if [ -z "$RESTART" ] && [ -s "$SUPPORT/port" ] && [ -s "$SUPPORT/token" ]; then
   P="$(cat "$SUPPORT/port")"; T="$(cat "$SUPPORT/token")"
   R="$(ping_engine "$P" "$T")"
   case "$R" in
-    *"\"build\":\"$BUILD\""*) open_ui "$P" "$T"; exit 0 ;;
+    *"\"build\":\"$BUILD\""*) lg "이미 켜져 있어요 — 창만 열기"; open_ui "$P" "$T"; exit 0 ;;
     *"\"ok\":true"*)
+      lg "다른 버전 엔진을 끄고 새로 켜요"
       curl -fs -m 3 -X POST -H "x-token: $T" "http://127.0.0.1:$P/api/quit" >/dev/null 2>&1
       sleep 1.2 ;;
   esac
@@ -93,20 +99,67 @@ if [ -z "$TOKEN" ] && [ -s "$SUPPORT/token" ]; then TOKEN="$(cat "$SUPPORT/token
 if [ -z "$PREF_PORT" ] && [ -s "$SUPPORT/last-port" ]; then PREF_PORT="$(cat "$SUPPORT/last-port")"; REUSED=1; fi
 [ -n "$TOKEN" ] || TOKEN="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 32)"
 rm -f "$SUPPORT/port"
-# 엔진이 화면에 남기는 말(오류 포함)은 engine.out 에 — 지난번 것은 engine.out.prev 로 남겨 진단에 써요
-[ -f "$SUPPORT/engine.out" ] && mv -f "$SUPPORT/engine.out" "$SUPPORT/engine.out.prev"
-CVTROAD_TOKEN="$TOKEN" CVTROAD_SUPPORT="$SUPPORT" CVTROAD_APP="$APP" CVTROAD_PORT="$PREF_PORT" CVTROAD_RESTART="$RESTART" \
-  nohup "$ENGINE" > "$SUPPORT/engine.out" 2>&1 < /dev/null &
-disown
+# 엔진이 화면에 남기는 말(오류 포함)은 기록 폴더의 engine.out 에 — 지난번 것은 engine.out.prev 로 남겨 진단에 써요
+[ -f "$LOGS/engine.out" ] && mv -f "$LOGS/engine.out" "$LOGS/engine.out.prev"
+
+# 엔진은 macOS가 관리하는 백그라운드 작업(launchd)으로 켜요.
+# 앱 실행기(이 스크립트)의 자식으로 켜면, 실행기가 끝날 때 macOS가 엔진까지 함께 끝내 버리는 경우가 있어요.
+LABEL="com.nevertheless-d.cvtroad.engine"
+UIDN="$(id -u)"
+xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+PL="$SUPPORT/engine.plist"
+cat > "$PL" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key><string>$LABEL</string>
+	<key>ProgramArguments</key><array><string>$(xml "$ENGINE")</string></array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key><string>$(xml "$HOME")</string>
+		<key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>CVTROAD_TOKEN</key><string>$(xml "$TOKEN")</string>
+		<key>CVTROAD_SUPPORT</key><string>$(xml "$SUPPORT")</string>
+		<key>CVTROAD_APP</key><string>$(xml "$APP")</string>
+		<key>CVTROAD_PORT</key><string>$(xml "$PREF_PORT")</string>
+		<key>CVTROAD_RESTART</key><string>$(xml "$RESTART")</string>
+	</dict>
+	<key>RunAtLoad</key><true/>
+	<key>KeepAlive</key><false/>
+	<key>AbandonProcessGroup</key><true/>
+	<key>ProcessType</key><string>Interactive</string>
+	<key>StandardOutPath</key><string>$(xml "$LOGS/engine.out")</string>
+	<key>StandardErrorPath</key><string>$(xml "$LOGS/engine.out")</string>
+</dict>
+</plist>
+PLIST
+launchctl bootout "gui/$UIDN/$LABEL" >/dev/null 2>&1
+STARTED=""
+for _ in 1 2 3; do
+  if OUT="$(launchctl bootstrap "gui/$UIDN" "$PL" 2>&1)"; then STARTED=launchd; break; fi
+  lg "launchd 등록 실패: $OUT"
+  sleep 0.4
+done
+if [ -z "$STARTED" ]; then
+  # 예비: 예전 방식 (실행기의 자식으로)
+  CVTROAD_TOKEN="$TOKEN" CVTROAD_SUPPORT="$SUPPORT" CVTROAD_APP="$APP" CVTROAD_PORT="$PREF_PORT" CVTROAD_RESTART="$RESTART" \
+    nohup "$ENGINE" >> "$LOGS/engine.out" 2>&1 < /dev/null &
+  disown
+  STARTED=nohup
+fi
+lg "엔진 켬 ($STARTED, 포트 희망 ${PREF_PORT:-없음})"
 
 for _ in $(seq 1 75); do [ -s "$SUPPORT/port" ] && break; sleep 0.2; done
 if [ ! -s "$SUPPORT/port" ]; then
+  lg "엔진이 15초 안에 켜지지 않았어요"
   dialog "😢 CVTROAD를 시작하지 못했어요. 앱을 다시 실행해 보세요.
 계속 안 되면 컴퓨터를 재시동한 뒤 시도해 주세요."
   exit 1
 fi
 PORT="$(cat "$SUPPORT/port")"
 printf '%s' "$PORT" > "$SUPPORT/last-port"
+lg "엔진 준비됨 (포트 $PORT)"
 
 # 4) 앱 창 열기 (다시 시작이고 같은 포트라면 열려 있던 창이 스스로 새로고침해요)
 if [ -n "$RESTART" ] && [ "$PORT" = "$PREF_PORT" ]; then
@@ -115,9 +168,10 @@ fi
 # 같은 포트로 다시 켰다면, 열려 있던 창이 몇 초 안에 다시 이어지는지 보고 — 이어지면 새 창을 또 열지 않아요
 if [ -n "$REUSED" ] && [ "$PORT" = "$PREF_PORT" ]; then
   for _ in $(seq 1 12); do
-    case "$(ping_engine "$PORT" "$TOKEN")" in *'"page":true'*) exit 0 ;; esac
+    case "$(ping_engine "$PORT" "$TOKEN")" in *'"page":true'*) lg "열려 있던 창이 다시 이어졌어요"; exit 0 ;; esac
     sleep 0.25
   done
 fi
+lg "앱 창 열기"
 open_ui "$PORT" "$TOKEN"
 exit 0
