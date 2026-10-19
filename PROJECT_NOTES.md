@@ -71,15 +71,20 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 - [x] 1.0.1 — 사용자 제보 "앱 엔진과 연결이 끊겼어요": 엔진이 20분 쉬면 꺼지는데, 맥 잠자기 후 깨어나면 벽시계가 넘어가 창이 열린 채로도 꺼졌음.
   수정: 깨어 있는 시간(20초 틱)으로 2시간, 실행기가 지난 토큰·포트(Support/token, last-port) 재사용 → 열린 창이 저절로 재연결(ping의 page:true면 새 창 안 엶),
   창 위쪽 노란 안내 띠 + `cvtroad://open`(Info.plist CFBundleURLTypes)으로 다시 켜기. 사용자 맥에도 직접 설치함.
-- [ ] **조사 중 (1.0.2)** — 1.0.1 설치 후에도 "다시 켜기를 눌러도 금방 다시 꺼짐" 제보. 원인 미확인(맥 로그는 ~/Library라 접근 불가).
-  1.0.2에서 진단 추가: debug.SetCrashOutput→Support/crash.txt, 종료 신호 로그, 실행기 출력→engine.out(.prev),
-  켜질 때 Support/running 남아 있고 pid 없으면 → last-crash.txt + **~/Downloads/CVTROAD 진단.txt** + 화면 알림.
-  goroutine은 guard()로 감쌈, 모르는 옵션으로 서버가 켜지지 않게. Downloads 폴더 접근 권한 받음 → 진단 파일 읽어서 원인 확정할 것.
+- [ ] **조사 중 → 1.0.3에서 대응** — "앱을 열어도/다시 켜기를 눌러도 금방 꺼짐".
+  - 1.0.2 진단: 크래시 기록이 안 남음 → 크래시가 아니라 정상 종료이거나 SIGKILL로 추정. 다운로드 폴더 쓰기는 TCC 때문에 못 했을 수 있음.
+  - 가설: 사용자 맥은 **macOS 27.0.1**. 실행기(앱 본체 bash)가 끝나면 macOS가 같은 앱에서 띄운 엔진까지 끝냄. (실행기가 창 재연결을 기다리는 3초 뒤에 꺼진 것과 맞음)
+  - 1.0.3: 엔진을 **launchd 작업**(`com.nevertheless-d.cvtroad.engine`, plist는 Support/engine.plist, `launchctl bootstrap gui/<uid>`)으로 실행. 실패하면 예전 nohup 방식.
+  - 기록은 **~/Library/Logs/CVTROAD/** (engine.log, engine.out(.prev), launcher.log, crash.txt, last-crash.txt). 이 폴더는 브리지로 읽을 수 있음(권한 받음) → 먼저 여기부터 읽을 것.
+  - 도우미(osascript) 크래시 발견: ~/Library/Logs/DiagnosticReports/osascript-2026-10-19-160433.ips, WKWebView evaluateJavaScript 완료 콜백(JXA null) → SIGABRT. performSelector로 nil 넘기게 수정.
+  - LIBROAD도 10/13에 JXA(osascript) 크래시가 여러 번 있었음 (같은 DiagnosticReports 폴더) — 나중에 살펴볼 것.
+  - SROAD·YTROAD·LIBROAD도 같은 nohup 실행 방식이라 macOS 27에서 같은 문제가 있을 수 있음 — 확인 필요.
 - [ ] /Applications/CVTROAD.zip 남은 파일 — 사용자가 휴지통으로 옮기면 됨 (브리지에서 삭제 권한 없음)
 - [ ] (나중에) Windows판 — 엔진은 windows/amd64 빌드 가능, 런처·탐색기 연동·업데이트 교체 방식 필요
 
 ## 작업 기록
 - 2026-10-19 12:4x — 세션이 응답 도중 끊겨 커밋 안 된 작업물을 `dev` 브랜치에 긴급 저장(254902b). 이 노트 작성.
+- 2026-10-19 16:5x — 1.0.3 출시(launchd 실행·기록 폴더·도우미 크래시 수정), 사용자 맥 설치. ~/Library/Logs 접근 권한 받음.
 - 2026-10-19 16:3x — 1.0.2 출시(진단·안정성), 사용자 맥에 설치. Downloads 접근 권한 받음.
 - 2026-10-19 16:1x — 1.0.1 출시(엔진 연결 끊김 수정), 사용자 맥에 설치.
 - 2026-10-19 13:3x — 앱 번들·빌드 스크립트, 테스트(67/68), UI·업데이트 시험, 사용자 맥 설치, 1.0.0 출시. CLAUDE.md 추가.
