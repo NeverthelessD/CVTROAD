@@ -3,6 +3,7 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
@@ -61,3 +62,9 @@ func notifyOS(title, msg string) {
 	exec.Command("/usr/bin/osascript", "-e", "on run argv", "-e",
 		`display notification (item 2 of argv) with title (item 1 of argv) sound name "Glass"`, "-e", "end run", title, msg).Start()
 }
+
+func processAlive(pid int) bool { return syscall.Kill(pid, 0) == nil }
+
+func diagSignals() []os.Signal { return []os.Signal{syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP} }
+
+func isHangup(s os.Signal) bool { return s == syscall.SIGHUP }

@@ -140,6 +140,7 @@ func runEngine() {
 	}
 	app.token = token
 	app.lastSeen.Store(time.Now().Unix())
+	app.startDiag() // 지난번에 갑자기 멈췄는지 확인 · 이번 오류는 기록
 	writeFileAtomic(filepath.Join(app.binDir, "helper.js"), helperJS, 0o644)
 	os.RemoveAll(filepath.Join(app.support, "tmp"))
 	cleanOld(filepath.Join(app.support, "uploads"), 2)
@@ -157,10 +158,10 @@ func runEngine() {
 	writeFileAtomic(filepath.Join(app.support, "port"), []byte(strconv.Itoa(app.port)), 0o644)
 	log.Printf("CVTROAD %s listening on %d", build, app.port)
 
-	go app.agent.Sync(app.Settings(), false) // 도우미 파일을 최신으로 · 켜 두기
-	go app.tools.EnsureLater()               // 변환 도구(ffmpeg)를 미리 준비
-	go app.idleWatcher()
-	go app.upd.autoLoop()
+	go func() { defer guard("도우미 준비"); app.agent.Sync(app.Settings(), false) }() // 도우미 파일을 최신으로 · 켜 두기
+	go func() { defer guard("변환 도구 준비"); app.tools.EnsureLater() }()            // 변환 도구(ffmpeg)를 미리 준비
+	go func() { defer guard("쉬는 시간 확인"); app.idleWatcher() }()
+	go func() { defer guard("자동 업데이트"); app.upd.autoLoop() }()
 	srv := &http.Server{Handler: hostGuard(app.routes())}
 	log.Fatal(srv.Serve(ln))
 }
@@ -224,6 +225,8 @@ func (a *App) idleWatcher() {
 }
 
 func (a *App) shutdown() {
+	log.Printf("엔진을 끕니다")
+	a.clearRunning()
 	a.jobs.CancelAll()
 	if b, err := os.ReadFile(filepath.Join(a.support, "port")); err == nil && string(b) == strconv.Itoa(a.port) {
 		os.Remove(filepath.Join(a.support, "port"))
@@ -391,6 +394,7 @@ func (a *App) routes() http.Handler {
 			"agent":    a.agent.Status(),
 			"update":   a.upd.State(),
 			"helper":   helperAvailable(),
+			"crash":    lastCrashInfo(),
 		})
 	})
 	api("/api/poll", func(w http.ResponseWriter, r *http.Request) {
@@ -455,7 +459,7 @@ func (a *App) routes() http.Handler {
 		writeJSON(w, a.upd.State())
 	})
 	api("/api/update/install", func(w http.ResponseWriter, r *http.Request) {
-		go a.upd.Install()
+		go func() { defer guard("업데이트 설치"); a.upd.Install() }()
 		writeJSON(w, map[string]any{"ok": true})
 	})
 	api("/api/update/rollback", func(w http.ResponseWriter, r *http.Request) {
@@ -528,7 +532,7 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 		now := a.settings
 		a.mu.Unlock()
 		if prev.Agent != now.Agent || prev.ShiftDrag != now.ShiftDrag || prev.Bubble != now.Bubble || prev.BubbleSide != now.BubbleSide || prev.Appearance != now.Appearance {
-			go a.agent.Sync(now, false)
+			go func() { defer guard("도우미 설정"); a.agent.Sync(now, false) }()
 		}
 	}
 	writeJSON(w, map[string]any{"ok": true, "settings": a.settingsJSON()})

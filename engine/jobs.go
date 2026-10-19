@@ -78,7 +78,7 @@ func (m *JobManager) pump() {
 			running++
 			j.State = "run"
 			j.Started = time.Now().UnixMilli()
-			go m.run(j)
+			go func() { defer guard("변환 작업"); m.run(j) }()
 		}
 	}
 }
