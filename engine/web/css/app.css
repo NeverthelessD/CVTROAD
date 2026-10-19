@@ -347,3 +347,13 @@ main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 26px 26
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* 엔진 연결이 끊겼을 때 위쪽 안내 띠 */
+.offline { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 0; padding: 12px 24px; background: var(--lane); color: var(--lane-ink); box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+.offline[hidden] { display: none; }
+.offline-text { display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.45; }
+.offline-text b { font-size: 14px; }
+.offline-btn { flex: none; background: var(--asphalt); color: #fff; text-decoration: none; padding: 9px 18px; border-radius: var(--r-s); font-weight: 700; font-size: 14px; }
+.offline-btn:hover { background: #000; }
+@media (max-width: 640px) { .offline { flex-direction: column; align-items: stretch; padding: 12px 16px; } .offline-btn { text-align: center; } }

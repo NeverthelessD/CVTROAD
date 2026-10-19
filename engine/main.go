@@ -82,6 +82,7 @@ type App struct {
 	allowed map[string]bool // 화면에 보여 줘도 되는 파일 (고른 파일 · 만든 파일)
 
 	lastSeen atomic.Int64
+	lastPage atomic.Int64 // 열려 있는 앱 창이 마지막으로 물어본 때
 	server   bool
 }
 
@@ -205,12 +206,18 @@ func listen(pref string) net.Listener {
 	return ln
 }
 
-// 창을 닫고 20분 동안 아무 요청이 없고, 하는 작업도 없으면 스스로 종료합니다.
+// 창을 닫고 (깨어 있는 시간으로) 2시간 동안 아무 요청이 없고, 하는 작업도 없으면 스스로 종료합니다.
+// 맥이 잠자기에서 깨어나면 시계가 훌쩍 넘어가므로, 벽시계 대신 20초 틱 수로 셉니다.
 // (앱을 열지 않아도 쓰는 기능은 백그라운드 도우미가 맡아요)
 func (a *App) idleWatcher() {
+	idleTicks, last := 0, a.lastSeen.Load()
 	for range time.Tick(20 * time.Second) {
-		idle := time.Now().Unix() - a.lastSeen.Load()
-		if idle > 1200 && !a.jobs.Busy() && !a.upd.Busy() && !a.tools.Running() {
+		if seen := a.lastSeen.Load(); seen != last || a.jobs.Busy() || a.upd.Busy() || a.tools.Running() {
+			idleTicks, last = 0, seen
+			continue
+		}
+		idleTicks++
+		if idleTicks*20 >= 7200 {
 			a.shutdown()
 		}
 	}
@@ -358,12 +365,17 @@ func (a *App) routes() http.Handler {
 				return
 			}
 			a.lastSeen.Store(time.Now().Unix())
+			if path != "/api/ping" {
+				a.lastPage.Store(time.Now().Unix())
+			}
 			h(w, r)
 		})
 	}
 
 	api("/api/ping", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]any{"ok": true, "build": build})
+		// page: 열려 있는 앱 창이 방금 다시 연결됐는지 (실행기가 창을 또 열지 판단해요)
+		page := time.Now().Unix()-a.lastPage.Load() < 8
+		writeJSON(w, map[string]any{"ok": true, "build": build, "page": page})
 	})
 	api("/api/quit", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"ok": true})

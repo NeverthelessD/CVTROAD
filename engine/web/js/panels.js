@@ -175,7 +175,7 @@ function onToolsState() {
   else body = '<p class="muted">영상 · 오디오를 처음 바꿀 때 자동으로 받아요.</p><button class="btn small" id="toolsRetry" type="button">지금 받기</button>';
   box.innerHTML = '<h2>변환 엔진</h2>' + body + '<p class="muted" style="font-size:12.5px">이미지 · 문서 · PDF · 압축은 macOS에 들어 있는 기능으로 바꿔서 엔진 없이도 돼요.</p>';
   var r = $('#toolsRetry');
-  if (r) r.onclick = function () { api('/api/tools/install', {}).then(function (j) { App.st.tools = j; onToolsState(); pollSoon(); }); };
+  if (r) r.onclick = function () { api('/api/tools/install', {}).then(function (j) { if (j.offline) return; App.st.tools = j; onToolsState(); pollSoon(); }); };
 }
 
 // ───────────────────────── 버전 · 업데이트

@@ -32,6 +32,17 @@
 	<string>public.app-category.utilities</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.nevertheless-d.cvtroad</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cvtroad</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSHumanReadableCopyright</key>
 	<string>made by. Nevertheless_D</string>
 </dict>
