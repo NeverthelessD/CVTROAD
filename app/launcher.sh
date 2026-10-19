@@ -93,8 +93,10 @@ if [ -z "$TOKEN" ] && [ -s "$SUPPORT/token" ]; then TOKEN="$(cat "$SUPPORT/token
 if [ -z "$PREF_PORT" ] && [ -s "$SUPPORT/last-port" ]; then PREF_PORT="$(cat "$SUPPORT/last-port")"; REUSED=1; fi
 [ -n "$TOKEN" ] || TOKEN="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 32)"
 rm -f "$SUPPORT/port"
+# 엔진이 화면에 남기는 말(오류 포함)은 engine.out 에 — 지난번 것은 engine.out.prev 로 남겨 진단에 써요
+[ -f "$SUPPORT/engine.out" ] && mv -f "$SUPPORT/engine.out" "$SUPPORT/engine.out.prev"
 CVTROAD_TOKEN="$TOKEN" CVTROAD_SUPPORT="$SUPPORT" CVTROAD_APP="$APP" CVTROAD_PORT="$PREF_PORT" CVTROAD_RESTART="$RESTART" \
-  nohup "$ENGINE" > /dev/null 2>&1 < /dev/null &
+  nohup "$ENGINE" > "$SUPPORT/engine.out" 2>&1 < /dev/null &
 disown
 
 for _ in $(seq 1 75); do [ -s "$SUPPORT/port" ] && break; sleep 0.2; done

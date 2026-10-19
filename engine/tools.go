@@ -170,6 +170,7 @@ func (t *Tools) Start() {
 	t.resetItems()
 	t.mu.Unlock()
 	go func() {
+		defer guard("변환 도구 받기")
 		err := t.install(context.Background(), nil)
 		t.mu.Lock()
 		t.running = false

@@ -5,6 +5,7 @@ package main
 // Windows 판은 나중에 만들어요. 지금은 빌드만 되도록 둬요.
 
 import (
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -28,3 +29,16 @@ func revealPath(p string)         { exec.Command("explorer", "/select,", p).Star
 func quickLook(p string)          { openPath(p) }
 func notifyOS(title, msg string)  {}
 func freeSpace(path string) int64 { return 0 }
+
+func processAlive(pid int) bool {
+	p, err := os.FindProcess(pid) // Windows: 프로세스가 없으면 오류
+	if err != nil {
+		return false
+	}
+	p.Release()
+	return true
+}
+
+func diagSignals() []os.Signal { return []os.Signal{os.Interrupt} }
+
+func isHangup(s os.Signal) bool { return false }
