@@ -87,6 +87,10 @@ CVTROAD를 응용 프로그램 폴더로 옮긴 뒤 다시 실행해 주세요."
 fi
 
 # 3) 엔진 켜기
+#    엔진이 쉬다가 꺼졌어도, 열려 있던 앱 창이 저절로 다시 이어지도록 지난번 열쇠(토큰)와 포트를 다시 써요
+REUSED=""
+if [ -z "$TOKEN" ] && [ -s "$SUPPORT/token" ]; then TOKEN="$(cat "$SUPPORT/token")"; fi
+if [ -z "$PREF_PORT" ] && [ -s "$SUPPORT/last-port" ]; then PREF_PORT="$(cat "$SUPPORT/last-port")"; REUSED=1; fi
 [ -n "$TOKEN" ] || TOKEN="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 32)"
 rm -f "$SUPPORT/port"
 CVTROAD_TOKEN="$TOKEN" CVTROAD_SUPPORT="$SUPPORT" CVTROAD_APP="$APP" CVTROAD_PORT="$PREF_PORT" CVTROAD_RESTART="$RESTART" \
@@ -100,10 +104,18 @@ if [ ! -s "$SUPPORT/port" ]; then
   exit 1
 fi
 PORT="$(cat "$SUPPORT/port")"
+printf '%s' "$PORT" > "$SUPPORT/last-port"
 
 # 4) 앱 창 열기 (다시 시작이고 같은 포트라면 열려 있던 창이 스스로 새로고침해요)
 if [ -n "$RESTART" ] && [ "$PORT" = "$PREF_PORT" ]; then
   exit 0
+fi
+# 같은 포트로 다시 켰다면, 열려 있던 창이 몇 초 안에 다시 이어지는지 보고 — 이어지면 새 창을 또 열지 않아요
+if [ -n "$REUSED" ] && [ "$PORT" = "$PREF_PORT" ]; then
+  for _ in $(seq 1 12); do
+    case "$(ping_engine "$PORT" "$TOKEN")" in *'"page":true'*) exit 0 ;; esac
+    sleep 0.25
+  done
 fi
 open_ui "$PORT" "$TOKEN"
 exit 0

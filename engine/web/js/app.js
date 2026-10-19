@@ -22,11 +22,19 @@ function api(path, body, opt) {
   if (body !== undefined) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
   if (opt && opt.raw) { o.body = opt.raw; delete o.headers['Content-Type']; o.method = 'POST'; }
   return fetch(path, o).then(function (r) {
+    setOffline(false);
     return r.json().catch(function () { return { ok: false, error: '응답을 읽지 못했어요' }; }).then(function (j) {
       if (!r.ok && j && j.ok === undefined) j.ok = false;
       return j;
     });
-  }).catch(function () { return { ok: false, error: '앱 엔진과 연결이 끊겼어요. CVTROAD를 다시 열어 주세요', offline: true }; });
+  }).catch(function () { setOffline(true); return { ok: false, error: '앱 엔진이 쉬고 있어요. 위쪽 ‘다시 켜기’를 눌러 주세요', offline: true }; });
+}
+// 엔진이 꺼지면(오래 쉬었거나 맥이 잠자기에서 깨어난 뒤) 위쪽에 안내 띠 — 다시 켜지면 저절로 사라져요
+function setOffline(on) {
+  var el = document.getElementById('offline');
+  if (!el || el.hidden === !on) return;
+  el.hidden = !on;
+  if (!on && typeof pollSoon === 'function') pollSoon();
 }
 function withToken(url) { return url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + encodeURIComponent(App.token); }
 function humanSize(n) {
@@ -396,7 +404,7 @@ var pollTimer = null;
 function pollSoon() { clearTimeout(pollTimer); pollTimer = setTimeout(poll, 150); }
 function poll() {
   api('/api/poll').then(function (j) {
-    if (j.offline) { scheduleNext(4000); return; }
+    if (j.offline) { scheduleNext(1500); return; }
     App.jobs = j.jobs || [];
     if (j.update) { App.st.update = j.update; renderVersion(); }
     if (j.tools) { App.st.tools = j.tools; if (window.onToolsState) onToolsState(); }
