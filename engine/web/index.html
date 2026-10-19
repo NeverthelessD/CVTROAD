@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CVTROAD</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // 화면 모드를 먼저 정해서 깜빡이지 않게
+  try { var t = localStorage.getItem('cvt-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#convert" aria-label="CVTROAD 처음 화면">
+    <span class="brand-mark" id="brandMark"></span>
+    <span class="brand-word">CVTROAD</span>
+  </a>
+  <nav class="nav" aria-label="화면">
+    <a href="#convert" data-view="convert">변환</a>
+    <a href="#tools" data-view="tools">도구</a>
+    <a href="#helper" data-view="helper">도우미</a>
+    <a href="#settings" data-view="settings">설정</a>
+  </nav>
+  <div class="top-right">
+    <button class="jobs-pill" id="jobsPill" hidden type="button"></button>
+    <button class="ver" id="verBadge" type="button" title="버전 · 업데이트">v—</button>
+    <button class="theme-btn" id="themeBtn" type="button" title="화면 모드 바꾸기" aria-label="화면 모드 바꾸기"></button>
+  </div>
+  <div class="lane-line" aria-hidden="true"></div>
+</header>
+
+<main id="main">
+  <!-- 변환 -->
+  <section class="view" id="view-convert">
+    <div class="convert">
+      <div class="col-files" id="filesCol">
+        <div class="drop" id="drop">
+          <div class="drop-empty" id="dropEmpty">
+            <div class="hero-art" id="heroArt"></div>
+            <h1>바꿀 파일을 여기에 끌어다 놓으세요</h1>
+            <p class="lead">이미지 · 영상 · 오디오 · 문서 · PDF · 압축 파일. 여러 개도 한꺼번에 돼요.</p>
+            <div class="row gap">
+              <button class="btn primary" id="pickFiles" type="button">파일 고르기</button>
+              <button class="btn" id="pickFolder" type="button">폴더 고르기</button>
+            </div>
+            <p class="tip" id="dropTip"></p>
+          </div>
+          <div class="files" id="files" hidden>
+            <div class="files-head">
+              <h2 id="filesTitle">파일</h2>
+              <div class="row gap-s">
+                <button class="btn small" id="addMore" type="button">＋ 더 넣기</button>
+                <button class="btn small ghost" id="clearFiles" type="button">모두 빼기</button>
+              </div>
+            </div>
+            <ul class="file-list" id="fileList"></ul>
+          </div>
+          <div class="drop-over" aria-hidden="true"><span>놓으면 목록에 들어가요</span></div>
+        </div>
+      </div>
+
+      <aside class="col-exits" id="exitsCol">
+        <div class="exits-head">
+          <h2>어디로 갈까요</h2>
+          <div class="seg" role="tablist" id="opSeg">
+            <button type="button" data-op="convert" class="on">형식 바꾸기</button>
+            <button type="button" data-op="tool">도구</button>
+          </div>
+        </div>
+        <div id="exitGroups" class="exit-groups"></div>
+        <div id="options" class="options"></div>
+        <div class="save-to" id="saveTo"></div>
+        <button class="btn go" id="goBtn" type="button" disabled>파일을 넣어 주세요</button>
+      </aside>
+    </div>
+    <section class="jobs" id="jobsSec" hidden>
+      <div class="jobs-head">
+        <h2>작업</h2>
+        <button class="btn small ghost" id="clearJobs" type="button">끝난 작업 지우기</button>
+      </div>
+      <ul class="job-list" id="jobList"></ul>
+    </section>
+  </section>
+
+  <!-- 도구 -->
+  <section class="view" id="view-tools" hidden>
+    <div class="page-head">
+      <h1>도구</h1>
+      <p class="lead">용량 줄이기, 정보 지우기, PDF 나누기·합치기처럼 형식은 그대로 두고 손보는 일이에요. 원본은 그대로 두고 새 파일을 만들어요.</p>
+    </div>
+    <div id="toolGroups" class="tool-groups"></div>
+  </section>
+
+  <!-- 도우미 -->
+  <section class="view" id="view-helper" hidden>
+    <div class="page-head">
+      <h1>앱을 열지 않아도 바꾸기</h1>
+      <p class="lead">작은 도우미가 메뉴 막대에 있으면, Finder에서 파일을 끌다가 Shift만 눌러도 변환 메뉴가 떠요.</p>
+    </div>
+    <div class="helper">
+      <div class="helper-demo card">
+        <div class="demo-stage" id="demoStage">
+          <iframe id="ringFrame" title="원형 메뉴 미리 보기" src="about:blank"></iframe>
+        </div>
+        <div class="demo-caption">
+          <div class="seg small" id="demoSeg">
+            <button type="button" data-k="image" class="on">이미지</button>
+            <button type="button" data-k="audio">오디오</button>
+            <button type="button" data-k="video">영상</button>
+            <button type="button" data-k="pdf">PDF</button>
+          </div>
+          <div class="seg small" id="demoMode">
+            <button type="button" data-m="convert" class="on">Shift = 변환</button>
+            <button type="button" data-m="tools">Shift+⌥ = 도구</button>
+          </div>
+        </div>
+      </div>
+      <div class="helper-side">
+        <div class="card status-card" id="agentCard"></div>
+        <ol class="ways card" id="ways"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 설정 -->
+  <section class="view" id="view-settings" hidden>
+    <div class="page-head"><h1>설정</h1></div>
+    <div class="settings" id="settingsBox"></div>
+  </section>
+</main>
+
+<footer class="foot">made by. Nevertheless_D</footer>
+
+<div class="modal" id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" id="sheet"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" multiple hidden>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="js/art.js"></script>
+<script src="js/app.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/panels.js"></script>
+</body>
+</html>
