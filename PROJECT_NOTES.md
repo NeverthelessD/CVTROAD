@@ -42,6 +42,11 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 1. `VERSION` 올리기 → `scripts/build.sh --notes "바뀐 점"` → `releases/CVTROAD-<v>.zip`, `releases/latest.json` 생성
 2. main에 커밋·푸시하면 설치된 앱이 6시간 안에(또는 '업데이트 확인'으로) 받음. releases/에는 최신 zip 3개만 유지.
 
+## 사용자 맥에 직접 설치할 때 (브리지)
+- /Applications 접근 권한 있음. 삭제는 막혀 있어서 `unzip -o`가 실패 → python으로 각 파일을 제자리에 덮어쓰기(r+b, truncate).
+- device_commit_files는 같은 stagedPath 이름이면 예전 파일을 다시 보냄 → 버전마다 다른 이름(CVTROAD-<v>.zip)으로 stage.
+- 설치 후 엔진 sha256을 dist와 비교해서 확인.
+
 ## 리눅스에서 시험하기
 - `go build -o /tmp/cv ./engine` 후 env: `CVTROAD_SUPPORT`, `CVTROAD_TOKEN`, `CVTROAD_PORT`, `CVTROAD_FFMPEG_DIR=/usr/bin`, `CVTROAD_HELPER_CMD="python3 scripts/test/fakehelper.py"`, `CVTROAD_APP`, `CVTROAD_UPDATE_URL`
 - `python3 scripts/test/make_samples.py <dir>` → `run_matrix.py <engine> <dir> <out>`
@@ -63,9 +68,13 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 - [x] dev → main 병합, 첫 릴리스 1.0.0 (releases/latest.json 공개 확인)
 - [ ] 사용자 맥에서 실제 실행 확인 — 화면 제어는 사용자가 거절, 사용자가 직접 더블클릭해서 확인 예정
   - 확인할 것: 앱 창 열림(Chrome 앱 창), 메뉴 막대 아이콘, Shift-드래그 원형 메뉴, ⌃⌥C, 빠른 동작, HEIC 저장, ffmpeg 자동 받기 후 MP3 변환
+- [x] 1.0.1 — 사용자 제보 "앱 엔진과 연결이 끊겼어요": 엔진이 20분 쉬면 꺼지는데, 맥 잠자기 후 깨어나면 벽시계가 넘어가 창이 열린 채로도 꺼졌음.
+  수정: 깨어 있는 시간(20초 틱)으로 2시간, 실행기가 지난 토큰·포트(Support/token, last-port) 재사용 → 열린 창이 저절로 재연결(ping의 page:true면 새 창 안 엶),
+  창 위쪽 노란 안내 띠 + `cvtroad://open`(Info.plist CFBundleURLTypes)으로 다시 켜기. 사용자 맥에도 직접 설치함.
 - [ ] /Applications/CVTROAD.zip 남은 파일 — 사용자가 휴지통으로 옮기면 됨 (브리지에서 삭제 권한 없음)
 - [ ] (나중에) Windows판 — 엔진은 windows/amd64 빌드 가능, 런처·탐색기 연동·업데이트 교체 방식 필요
 
 ## 작업 기록
 - 2026-10-19 12:4x — 세션이 응답 도중 끊겨 커밋 안 된 작업물을 `dev` 브랜치에 긴급 저장(254902b). 이 노트 작성.
+- 2026-10-19 16:1x — 1.0.1 출시(엔진 연결 끊김 수정), 사용자 맥에 설치.
 - 2026-10-19 13:3x — 앱 번들·빌드 스크립트, 테스트(67/68), UI·업데이트 시험, 사용자 맥 설치, 1.0.0 출시. CLAUDE.md 추가.
