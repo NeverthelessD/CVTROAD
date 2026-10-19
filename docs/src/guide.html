@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>CVTROAD 사용 가이드</title>
+<style>
+@font-face { font-family: "Pretendard"; src: url("../../engine/web/fonts/PretendardVariable.woff2") format("woff2"); font-weight: 45 920; }
+@font-face { font-family: "Overpass"; src: url("../../engine/web/fonts/Overpass-latin.woff2") format("woff2"); font-weight: 100 900; }
+:root {
+  --guide: #0f6b4f; --guide-hi: #1c8a66; --service: #1f5fbf; --lane: #f5c431; --stop: #d23b3b;
+  --bg: #16181b; --asphalt: #22262b; --card: #1e2125; --line: #33383f; --ink: #eef0ec; --ink-2: #b4bbc2; --ink-3: #828a93;
+  --sans: "Pretendard", sans-serif; --sign: "Overpass", "Pretendard", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 1500px; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.page { padding: 0 0 36px; }
+
+/* 머리 — 아스팔트 도로 */
+header { position: relative; background: var(--asphalt); padding: 46px 60px 52px; display: flex; gap: 34px; align-items: center; overflow: hidden; }
+header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background: repeating-linear-gradient(90deg, var(--lane) 0 46px, transparent 46px 74px); }
+header::before { content: ""; position: absolute; right: -120px; top: -160px; width: 520px; height: 520px; border-radius: 50%;
+  border: 70px solid #2c3137; box-shadow: inset 0 0 0 3px #3b4148; }
+header img { width: 132px; height: 132px; border-radius: 30px; box-shadow: 0 14px 40px rgba(0,0,0,.45); position: relative; z-index: 1; }
+.htext { position: relative; z-index: 1; }
+h1 { font-family: var(--sign); font-weight: 800; font-size: 76px; letter-spacing: 1px; line-height: 1; display: flex; align-items: baseline; gap: 18px; }
+h1 small { font-family: var(--sans); font-size: 30px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.tag { margin-top: 14px; font-size: 21px; font-weight: 600; color: #dfe3df; }
+.chips { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+.chip { font-size: 15px; font-weight: 700; padding: 6px 14px; border-radius: 999px; background: #2f343a; border: 1px solid #434a52; color: #e8ebe7; }
+.chip b { color: var(--lane); }
+
+main { padding: 0 60px; }
+h2 { font-size: 27px; font-weight: 800; margin: 40px 0 16px; display: flex; align-items: baseline; gap: 14px; }
+h2 span { font-size: 16px; font-weight: 500; color: var(--ink-3); }
+h2 .mile { font-family: var(--sign); font-size: 14px; font-weight: 800; color: #10151a; background: var(--lane); border-radius: 6px; padding: 2px 8px; position: relative; top: -3px; }
+
+.grid { display: grid; gap: 16px; }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g5 { grid-template-columns: repeat(5, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 22px 22px; }
+.step .n { font-family: var(--sign); font-weight: 800; font-size: 18px; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--guide); border: 2px solid #e9efe9; color: #fff; margin-bottom: 14px; }
+.card h3 { font-size: 19px; font-weight: 800; margin-bottom: 8px; }
+.card p { color: var(--ink-2); font-size: 15.5px; }
+.card p b, li b { color: var(--ink); font-weight: 700; }
+
+/* 방법 카드 */
+.way { position: relative; padding-top: 20px; }
+.way .key { display: inline-flex; gap: 5px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+kbd { font-family: var(--sign); font-weight: 800; font-size: 15px; min-width: 32px; height: 32px; padding: 0 9px; display: inline-grid; place-items: center;
+  border-radius: 8px; background: #2e3339; border: 1px solid #4a525b; border-bottom-width: 3px; color: #f1f3f0; }
+.plus { color: var(--ink-3); font-weight: 700; }
+.way .pill { font-size: 13px; font-weight: 800; padding: 5px 11px; border-radius: 8px; color: #10151a; background: var(--lane); }
+.way.rec { border-color: #2e7d62; box-shadow: inset 0 0 0 1px #2e7d62; }
+.way.rec::after { content: "추천"; position: absolute; top: 18px; right: 18px; font-size: 12px; font-weight: 800; color: #fff; background: var(--guide-hi); padding: 3px 9px; border-radius: 999px; }
+
+/* 원형 메뉴 미니 그림 */
+.ring { width: 100%; height: 150px; margin: -2px 0 12px; }
+
+/* 형식 표 */
+.kind { padding: 18px 20px 20px; }
+.khead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.dot { width: 12px; height: 12px; border-radius: 3px; }
+.khead h3 { margin: 0; font-size: 18px; }
+.khead span { color: var(--ink-3); font-size: 13.5px; font-weight: 500; }
+.signs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sign { font-family: var(--sign); font-weight: 800; font-size: 13.5px; color: #fff; background: var(--guide); border: 1.5px solid #dfe8e2; border-radius: 6px; padding: 3px 8px 2px; letter-spacing: .3px; }
+.sign.mp3 { background: var(--lane); color: #14181c; border-color: #fff3c4; }
+.tools { margin-top: 12px; font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+.tools i { font-style: normal; display: inline-block; font-weight: 700; color: #cfe0ff; background: #1d3354; border: 1px solid #2b4c7c; border-radius: 6px; padding: 0 7px; margin: 0 3px 4px 0; font-size: 13px; }
+
+/* 아래 두 칸 */
+.bottom { display: grid; grid-template-columns: 1fr 1.18fr; gap: 16px; margin-top: 40px; }
+.bottom h2 { margin-top: 0; }
+ul.notes { list-style: none; display: grid; gap: 13px; }
+ul.notes li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; color: var(--ink-2); font-size: 15.5px; }
+ul.notes .ic { font-size: 21px; line-height: 1.2; text-align: center; }
+.rows { display: grid; gap: 12px; }
+.row { display: grid; grid-template-columns: 112px 1fr; gap: 14px; font-size: 15.5px; color: var(--ink-2); }
+.row b:first-child { color: #9fd9bf; font-weight: 800; }
+.verbadge { font-family: var(--sign); font-weight: 800; font-size: 13px; border: 1px solid #4a525b; border-radius: 999px; padding: 1px 9px; color: var(--ink); background: #2a2e34; }
+.warn h2 { color: var(--lane); }
+
+footer { margin-top: 34px; text-align: center; font-family: var(--sign); font-weight: 800; font-size: 20px; letter-spacing: .5px; color: #7f8a85; }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <img src="../../app/AppIcon.png" alt="">
+  <div class="htext">
+    <h1>CVTROAD <small>사용 가이드</small></h1>
+    <p class="tag">이미지 · 영상 · 오디오 · 문서 · PDF · 압축 파일을 원하는 형식으로, 이 Mac 안에서 바로 바꿔요</p>
+    <div class="chips">
+      <span class="chip">🍎 Apple Silicon 맥 전용</span>
+      <span class="chip">🔒 파일을 밖으로 보내지 않아요</span>
+      <span class="chip">🎧 <b>MP3</b> · M4A · WAV · FLAC</span>
+      <span class="chip">⇧ 끌기 · ⌃⌥C 앱 없이 변환</span>
+      <span class="chip">🔄 자동 업데이트</span>
+      <span class="chip">🌓 라이트 · 다크</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <h2><span class="mile">START</span>처음 한 번만 <span>5분이면 끝나요</span></h2>
+  <div class="grid g4">
+    <div class="card step"><div class="n">1</div><h3>압축 풀고 옮기기</h3>
+      <p><b>CVTROAD.zip</b>을 풀고 <b>CVTROAD</b>를 <b>응용 프로그램</b> 폴더로 옮겨요. 그래야 자동 업데이트가 돼요.</p></div>
+    <div class="card step"><div class="n">2</div><h3>보안 허용</h3>
+      <p>처음 열 때 경고가 뜨면 <b>시스템 설정 → 개인정보 보호 및 보안</b> 맨 아래에서 <b>“그래도 열기”</b>를 눌러요.</p></div>
+    <div class="card step"><div class="n">3</div><h3>변환 엔진은 알아서</h3>
+      <p>처음 켜면 영상·오디오용 변환 엔진(약 90MB)을 <b>한 번만</b> 받아요. 이미지·문서·PDF는 바로 돼요.</p></div>
+    <div class="card step"><div class="n">4</div><h3>도우미 알림은 괜찮아요</h3>
+      <p><b>‘백그라운드 항목이 추가됨’</b> 알림은 CVTROAD 도우미예요. 켜 두면 <b>앱을 열지 않아도</b> 바꿀 수 있어요.</p></div>
+  </div>
+
+  <h2><span class="mile">ROUTE</span>바꾸는 다섯 가지 길 <span>편한 걸 골라 쓰세요</span></h2>
+  <div class="grid g5">
+    <div class="card way rec">
+      <svg class="ring" viewBox="0 0 220 150" aria-hidden="true">
+        <circle cx="110" cy="75" r="66" fill="#2b2f35" />
+        <g fill="#0f6b4f" stroke="#e9efe9" stroke-width="1.5">
+          <path d="M110 13 A62 62 0 0 1 163.7 44 L136 59.4 A31 31 0 0 0 110 44Z"/>
+          <path d="M163.7 44 A62 62 0 0 1 163.7 106 L136 90.6 A31 31 0 0 0 136 59.4Z"/>
+          <path d="M163.7 106 A62 62 0 0 1 110 137 L110 106 A31 31 0 0 0 136 90.6Z" fill="#f5c431"/>
+          <path d="M110 137 A62 62 0 0 1 56.3 106 L84 90.6 A31 31 0 0 0 110 106Z"/>
+          <path d="M56.3 106 A62 62 0 0 1 56.3 44 L84 59.4 A31 31 0 0 0 84 90.6Z"/>
+          <path d="M56.3 44 A62 62 0 0 1 110 13 L110 44 A31 31 0 0 0 84 59.4Z"/>
+        </g>
+        <g font-family="Overpass" font-weight="800" font-size="11" text-anchor="middle" fill="#fff">
+          <text x="128" y="38">JPG</text><text x="153" y="79">PNG</text><text x="128" y="122" fill="#14181c">MP3</text>
+          <text x="92" y="122">PDF</text><text x="67" y="79">WEBP</text><text x="92" y="38">HEIC</text>
+        </g>
+        <circle cx="110" cy="75" r="22" fill="#f28c28" stroke="#fff" stroke-width="2"/>
+        <text x="110" y="79" text-anchor="middle" font-family="Pretendard" font-weight="800" font-size="11" fill="#fff">취소</text>
+      </svg>
+      <div class="key"><kbd>⇧</kbd><span class="plus">+</span><span class="pill">끌기</span></div>
+      <h3>Shift-드래그</h3>
+      <p>Finder·바탕 화면에서 파일을 끌다가 <b>Shift</b>를 누르면 커서 주변에 원형 메뉴가 떠요. 표지판 위에서 손을 떼면 끝, 가운데에서 떼면 취소. <b>⇧+⌥</b>은 도구 메뉴.</p>
+    </div>
+    <div class="card way">
+      <div class="key"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>C</kbd></div>
+      <h3>단축키</h3>
+      <p>Finder에서 파일을 고르고 <b>⌃⌥C</b>(변환) · <b>⌃⌥T</b>(도구). 마우스, 방향키 + <b>Enter</b>, 숫자로 골라요. <b>Esc</b>는 취소.</p>
+    </div>
+    <div class="card way">
+      <div class="key"><span class="pill">오른쪽 클릭</span></div>
+      <h3>빠른 동작</h3>
+      <p>파일을 오른쪽 클릭 → <b>빠른 동작</b> → <b>CVTROAD → JPG / PDF / MP3로 바꾸기</b>. 고르지 않고 바로 바뀌어요.</p>
+    </div>
+    <div class="card way">
+      <div class="key"><span class="pill">메뉴 막대</span><span class="pill">떠 있는 창</span></div>
+      <h3>위젯처럼</h3>
+      <p>메뉴 막대 아이콘에서 잠시 멈추기·앱 열기. <b>떠 있는 변환 창</b>을 켜면 화면 구석 표지판에 파일을 놓기만 하면 돼요.</p>
+    </div>
+    <div class="card way">
+      <div class="key"><span class="pill">앱 창</span></div>
+      <h3>앱에서 자세히</h3>
+      <p>파일·폴더를 창에 끌어다 놓고 → 오른쪽 <b>표지판</b>(형식) 또는 <b>도구</b>를 고르고 → <b>바꾸기</b>. 화질·음질도 여기서 골라요.</p>
+    </div>
+  </div>
+
+  <h2><span class="mile">EXIT</span>어디로 바꿀 수 있나요 <span>초록 = 형식 바꾸기 · 파랑 = 도구</span></h2>
+  <div class="grid g3">
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#f28c28"></div><h3>이미지</h3><span>JPG · PNG · HEIC · WEBP · RAW 등</span></div>
+      <div class="signs"><b class="sign">JPG</b><b class="sign">PNG</b><b class="sign">HEIC</b><b class="sign">WEBP</b><b class="sign">AVIF</b><b class="sign">TIFF</b><b class="sign">GIF</b><b class="sign">BMP</b><b class="sign">PDF</b><b class="sign">ICO</b></div>
+      <p class="tools"><i>크기 반으로</i><i>1920px 맞춤</i><i>용량 줄이기</i><i>정보 지우기</i><i>회전</i><i>하나의 PDF로</i><i>QR 코드 읽기</i></p></div>
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#7b5cd6"></div><h3>영상</h3><span>MP4 · MOV · MKV · AVI 등</span></div>
+      <div class="signs"><b class="sign">MP4</b><b class="sign">MOV</b><b class="sign">WEBM</b><b class="sign">MKV</b><b class="sign">GIF</b><b class="sign mp3">MP3</b><b class="sign">M4A</b><b class="sign">WAV</b></div>
+      <p class="tools"><i>용량 줄이기</i><i>720p로 줄이기</i><i>소리 없애기</i><i>소리만 꺼내기</i><i>정보 지우기</i></p></div>
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#1aa898"></div><h3>오디오</h3><span>MP3 · WAV · FLAC · AAC 등</span></div>
+      <div class="signs"><b class="sign mp3">MP3</b><b class="sign">M4A</b><b class="sign">WAV</b><b class="sign">FLAC</b><b class="sign">AIFF</b><b class="sign">OGG</b><b class="sign">OPUS</b><b class="sign">M4R 벨소리</b></div>
+      <p class="tools"><i>용량 줄이기</i><i>음량 맞추기</i><i>앞뒤 무음 자르기</i><i>정보 지우기</i></p></div>
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#d23b3b"></div><h3>PDF</h3><span>쪽마다 그림 · 글자만 꺼내기</span></div>
+      <div class="signs"><b class="sign">PNG</b><b class="sign">JPG</b><b class="sign">TIFF</b><b class="sign">TXT</b><b class="sign">DOCX</b><b class="sign">RTF</b></div>
+      <p class="tools"><i>용량 줄이기</i><i>쪽마다 나누기</i><i>하나로 합치기</i><i>페이지 정리</i><i>회전</i><i>정보 지우기</i></p></div>
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#2563c9"></div><h3>문서</h3><span>DOCX · DOC · RTF · TXT · MD · HTML</span></div>
+      <div class="signs"><b class="sign">PDF</b><b class="sign">DOCX</b><b class="sign">DOC</b><b class="sign">RTF</b><b class="sign">ODT</b><b class="sign">HTML</b><b class="sign">TXT</b></div>
+      <p class="tools"><i>ZIP으로 묶기</i></p></div>
+    <div class="card kind"><div class="khead"><div class="dot" style="background:#8b5e34"></div><h3>압축 · 폴더</h3><span>ZIP · TAR · TAR.GZ</span></div>
+      <div class="signs"><b class="sign">풀기</b><b class="sign">ZIP</b><b class="sign">TAR.GZ</b></div>
+      <p class="tools"><i>압축 풀기</i><i>폴더째 압축</i> Windows에서 만든 한글 이름도 깨지지 않아요.</p></div>
+  </div>
+
+  <div class="bottom">
+    <div class="card">
+      <h2>앱 사용법 <span>화면 위쪽 탭</span></h2>
+      <div class="rows">
+        <div class="row"><b>변환</b><span>파일을 넣으면 바꿀 수 있는 형식만 표지판으로 보여요. 여러 개·여러 종류를 한꺼번에 넣어도 돼요.</span></div>
+        <div class="row"><b>도구</b><span>형식은 그대로 두고 손보기 — 용량 줄이기, 정보 지우기, PDF 나누기·합치기·페이지 정리.</span></div>
+        <div class="row"><b>도우미</b><span>원형 메뉴를 미리 체험하고, 도우미·떠 있는 창·빠른 동작을 켜고 꺼요.</span></div>
+        <div class="row"><b>설정</b><span>화면 모드(<b>시스템</b> · 라이트 · 다크), 저장할 곳(원본 옆 / 기본 폴더), 기본 화질·음질.</span></div>
+        <div class="row"><b>작업</b><span>진행률이 보이고 언제든 멈출 수 있어요. 끝나면 <b>Finder에서 보기</b> · <b>열기</b>.</span></div>
+        <div class="row"><b>업데이트</b><span>오른쪽 위 <span class="verbadge">v1.0.0</span> 이 지금 버전. 새 버전이 나오면 앱이 알아서 받아요. 바로 확인하려면 <b>설정 → 업데이트 확인</b>.</span></div>
+      </div>
+    </div>
+    <div class="card warn">
+      <h2>⚠️ 알아두면 좋은 점</h2>
+      <ul class="notes">
+        <li><span class="ic">🛡️</span><span><b>원본은 바뀌지 않아요.</b> 새 파일을 원본 옆에 만들고, 같은 이름이 있으면 “(2)”를 붙여요.</span></li>
+        <li><span class="ic">🔒</span><span><b>파일은 어디에도 보내지 않아요.</b> 인터넷은 변환 엔진을 처음 받을 때와 업데이트할 때만 써요.</span></li>
+        <li><span class="ic">📂</span><span><b>위치를 알 수 없는 파일</b>(다른 앱·브라우저에서 끌어온 파일)은 기본 폴더(처음엔 다운로드)에 저장돼요.</span></li>
+        <li><span class="ic">📄</span><span><b>PDF → 글자</b>는 글자만 꺼내요. 사진으로 찍은(스캔한) PDF는 글자가 나오지 않을 수 있어요. 문서 변환은 서식이 조금 달라질 수 있어요.</span></li>
+        <li><span class="ic">⏱️</span><span><b>큰 영상은 시간이 걸려요.</b> 창을 닫아도 작업은 계속되고, 끝나면 알림으로 알려 줘요.</span></li>
+        <li><span class="ic">🔔</span><span><b>아이폰 벨소리(M4R)</b>는 40초까지라서 앞 40초만 담아요.</span></li>
+        <li><span class="ic">©️</span><span><b>남이 만든 음악·영상</b>은 개인적으로만 쓰세요. 바꾼 파일을 올리거나 나누면 저작권 문제가 생길 수 있어요.</span></li>
+        <li><span class="ic">🗑️</span><span><b>깔끔하게 지우려면</b> 도우미 탭에서 도우미를 끈 뒤 앱을 휴지통에 버리고, Finder ‘폴더로 이동’에서 <b>~/Library/Application Support/CVTROAD</b>도 지워요.</span></li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer>made by. Nevertheless_D</footer>
+</div>
+</body>
+</html>
