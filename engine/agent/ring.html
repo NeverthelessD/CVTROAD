@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>ready</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- CVTROAD 원형 메뉴 (회전 교차로) — made by. Nevertheless_D
+     파일이 교차로에 들어오면, 바꿀 형식이 출구 표지판처럼 둘러서 있어요. 원하는 출구에서 손을 떼면 바뀌어요. -->
+<style>
+@font-face { font-family: "Overpass"; src: url("Overpass-latin.woff2") format("woff2"), url("../fonts/Overpass-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+:root {
+  --guide: #0f6b4f;      /* 길 안내 표지판 초록 = 변환 */
+  --service: #1f5fbf;    /* 편의시설 표지판 파랑 = 도구 */
+  --lane: #f5c431;       /* 차선 노랑 */
+  --asphalt: #2b2f35;
+  --asphalt-edge: #3a3f47;
+  --plate-text: #ffffff;
+  --disc: rgba(250, 251, 249, 0.96);
+  --disc-edge: rgba(20, 24, 28, 0.10);
+  --ink: #15191d;
+  --ink-soft: #5b636d;
+  --shadow: 0 18px 50px rgba(10, 14, 20, 0.28), 0 2px 8px rgba(10, 14, 20, 0.16);
+}
+:root[data-theme="dark"] {
+  --disc: rgba(29, 32, 36, 0.96);
+  --disc-edge: rgba(255, 255, 255, 0.08);
+  --asphalt: #15171b;
+  --asphalt-edge: #33373e;
+  --ink: #eef0f2;
+  --ink-soft: #a3abb5;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --disc: rgba(29, 32, 36, 0.96);
+    --disc-edge: rgba(255, 255, 255, 0.08);
+    --asphalt: #15171b;
+    --asphalt-edge: #33373e;
+    --ink: #eef0f2;
+    --ink-soft: #a3abb5;
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; -webkit-user-select: none; user-select: none; cursor: default; }
+body { font: 12px/1.25 -apple-system, "Apple SD Gothic Neo", "Pretendard Variable", sans-serif; color: var(--ink); }
+#stage { position: absolute; inset: 0; display: grid; place-items: center; }
+#ring { width: min(480px, 100vmin); height: min(480px, 100vmin); opacity: 0; transform: scale(.82); transition: opacity .14s ease, transform .2s cubic-bezier(.2, .9, .3, 1.2); }
+#ring.on { opacity: 1; transform: scale(1); }
+#ring.busy { transform: scale(.62); }
+#ring.busy .exits, #ring.busy .modepill { opacity: 0; pointer-events: none; }
+.disc { fill: var(--disc); stroke: var(--disc-edge); stroke-width: 1; }
+.disc-wrap { filter: drop-shadow(0 16px 30px rgba(8, 12, 18, .28)) drop-shadow(0 2px 5px rgba(8, 12, 18, .18)); }
+.road { fill: none; stroke: var(--asphalt); stroke-width: 48; }
+.road-edge { fill: none; stroke: var(--asphalt-edge); stroke-width: 1.5; }
+.lane { fill: none; stroke: var(--lane); stroke-width: 2.4; stroke-dasharray: 9 8; animation: drive 1.6s linear infinite; }
+@keyframes drive { to { stroke-dashoffset: -34; } }
+.progress { fill: none; stroke: var(--lane); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .25s ease; }
+.exits g.exit { transition: transform .12s ease; transform-origin: 240px 240px; }
+.plate { fill: var(--guide); stroke: rgba(255, 255, 255, .9); stroke-width: 2; transition: fill .1s ease; }
+.tools .plate { fill: var(--service); }
+.exit.hot .plate { fill: var(--k); stroke: var(--lane); stroke-width: 3.5; }
+.exit.hot { transform: scale(1.045); }
+.exit .lab { font: 800 19px "Overpass", -apple-system, sans-serif; fill: var(--plate-text); letter-spacing: .01em; text-anchor: middle; dominant-baseline: middle; }
+.exit .lab.long { font-size: 13.5px; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; font-weight: 700; letter-spacing: -.01em; }
+.exit .sub { font: 500 10.5px -apple-system, "Apple SD Gothic Neo", sans-serif; fill: rgba(255, 255, 255, .78); text-anchor: middle; dominant-baseline: middle; }
+.exit.hot .sub { fill: #fff; }
+.arrow { stroke: var(--lane); stroke-width: 5; stroke-linecap: round; fill: none; opacity: 0; transition: opacity .1s; }
+.arrow.on { opacity: 1; }
+.island { fill: var(--k); stroke: #fff; stroke-width: 3; transition: fill .15s; }
+.island.cancel { fill: #8a929c; }
+.island-lab { font: 800 15px "Overpass", -apple-system, sans-serif; fill: #fff; text-anchor: middle; dominant-baseline: middle; }
+.island-sub { font: 600 10px -apple-system, "Apple SD Gothic Neo", sans-serif; fill: rgba(255, 255, 255, .9); text-anchor: middle; dominant-baseline: middle; }
+.modepill rect { fill: var(--lane); }
+.modepill text { font: 700 10.5px -apple-system, "Apple SD Gothic Neo", sans-serif; fill: #1b1f23; text-anchor: middle; dominant-baseline: middle; }
+#name { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); max-width: 360px; padding: 5px 12px; border-radius: 99px;
+  background: var(--disc); color: var(--ink); font-weight: 600; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .18); opacity: 0; transition: opacity .15s; }
+#name.on { opacity: 1; }
+#msg { position: absolute; left: 50%; top: calc(50% + 92px); transform: translateX(-50%); width: 300px; text-align: center; padding: 9px 14px; border-radius: 14px;
+  background: var(--disc); color: var(--ink); font-size: 12.5px; font-weight: 600; box-shadow: var(--shadow); opacity: 0; transition: opacity .15s; line-height: 1.4; word-break: keep-all; }
+#msg small { display: block; color: var(--ink-soft); font-weight: 500; margin-top: 3px; word-break: break-all; }
+#msg.on { opacity: 1; }
+/* 떠 있는 변환 창 */
+#bubble { display: none; position: absolute; inset: 8px; border-radius: 50%; background: var(--guide); box-shadow: 0 8px 22px rgba(0, 0, 0, .3), inset 0 0 0 3px rgba(255, 255, 255, .92);
+  place-items: center; transition: transform .15s ease, background .15s ease; }
+body.bubble #bubble { display: grid; }
+body.bubble #stage { display: none; }
+#bubble.over { transform: scale(1.08); background: #0c5a42; box-shadow: 0 0 0 5px var(--lane), 0 10px 26px rgba(0, 0, 0, .35), inset 0 0 0 3px #fff; }
+#bubble svg { width: 54%; height: 54%; pointer-events: none; }
+#bubble .hint { position: absolute; bottom: 13px; font: 800 9.5px "Overpass", sans-serif; color: #fff; letter-spacing: .06em; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .lane { animation: none; } #ring { transition: opacity .1s; transform: none !important; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="ring" viewBox="0 0 480 480" aria-hidden="true">
+    <g class="disc-wrap"><circle class="disc" cx="240" cy="240" r="222"/></g>
+    <circle class="road" cx="240" cy="240" r="81"/>
+    <circle class="road-edge" cx="240" cy="240" r="105"/>
+    <circle class="road-edge" cx="240" cy="240" r="57"/>
+    <circle class="lane" cx="240" cy="240" r="81"/>
+    <circle class="progress" id="prog" cx="240" cy="240" r="81" transform="rotate(-90 240 240)" style="opacity:0"/>
+    <g class="exits" id="exits"></g>
+    <path class="arrow" id="arrow" d=""/>
+    <circle class="island" id="island" cx="240" cy="240" r="46"/>
+    <text class="island-lab" id="ilab" x="240" y="234"></text>
+    <text class="island-sub" id="isub" x="240" y="254"></text>
+    <g class="modepill" id="modepill"><rect x="196" y="304" width="88" height="20" rx="10"/><text id="modetext" x="240" y="315"></text></g>
+  </svg>
+  <div id="name"></div>
+  <div id="msg"></div>
+</div>
+<div id="bubble" title="여기에 파일을 끌어다 놓으면 바꿀 형식을 골라요">
+  <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="12" fill="none" stroke="#fff" stroke-width="5"/><path d="M24 2v10M24 36v10M2 24h10M36 24h10" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M39 12l4-4m0 0v5m0-5h-5" stroke="#f5c431" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+  <span class="hint">CVTROAD</span>
+</div>
+<script>
+(function () {
+  var C = 240, R1 = 110, R2 = 205, GAP = 2.2; // 출구 표지판: 반지름 110~205
+  var state = { items: [], hover: -1, how: '', mode: 'convert', color: '#0f6b4f', count: 0 };
+  var n = 0;
+  function emit(ev) { n++; document.title = 'ev:' + n + ':' + ev; }
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = 'http://www.w3.org/2000/svg';
+
+  function params() {
+    var h = location.hash.replace(/^#/, ''), o = {};
+    h.split('&').forEach(function (kv) { var p = kv.split('='); if (p[0]) o[p[0]] = decodeURIComponent(p[1] || ''); });
+    return o;
+  }
+  function setTheme(t) {
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  var P = params();
+  setTheme(P.theme);
+  if (P.mode === 'bubble') document.body.classList.add('bubble');
+
+  function polar(r, a) { return [C + r * Math.sin(a), C - r * Math.cos(a)]; }
+  function sector(a0, a1, r1, r2) {
+    var p1 = polar(r2, a0), p2 = polar(r2, a1), p3 = polar(r1, a1), p4 = polar(r1, a0);
+    var large = a1 - a0 > Math.PI ? 1 : 0;
+    return 'M' + p1 + 'A' + r2 + ',' + r2 + ' 0 ' + large + ' 1 ' + p2 + 'L' + p3 + 'A' + r1 + ',' + r1 + ' 0 ' + large + ' 0 ' + p4 + 'Z';
+  }
+
+  function build() {
+    var g = $('exits');
+    g.innerHTML = '';
+    g.setAttribute('class', 'exits ' + (state.mode === 'tools' ? 'tools' : ''));
+    var m = state.items.length;
+    if (!m) return;
+    var step = Math.PI * 2 / m;
+    var gap = GAP * Math.PI / 180 * (m > 8 ? 0.8 : 1);
+    state.items.forEach(function (it, i) {
+      var mid = i * step;
+      var e = document.createElementNS(NS, 'g');
+      e.setAttribute('class', 'exit');
+      e.style.setProperty('--k', state.color);
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('class', 'plate');
+      path.setAttribute('d', sector(mid - step / 2 + gap / 2, mid + step / 2 - gap / 2, R1, R2));
+      e.appendChild(path);
+      var lp = polar(152, mid);
+      var long = it.label.length > 5;
+      var t = document.createElementNS(NS, 'text');
+      t.setAttribute('class', 'lab' + (long ? ' long' : ''));
+      t.setAttribute('x', lp[0]); t.setAttribute('y', lp[1] - (it.sub ? 6 : 0));
+      if (long && it.label.indexOf(' ') > 0 && m > 5) {
+        // 긴 이름은 두 줄로
+        var words = it.label.split(' ');
+        var half = Math.ceil(words.length / 2);
+        var a = document.createElementNS(NS, 'tspan'); a.textContent = words.slice(0, half).join(' '); a.setAttribute('x', lp[0]); a.setAttribute('dy', '-0.45em');
+        var b = document.createElementNS(NS, 'tspan'); b.textContent = words.slice(half).join(' '); b.setAttribute('x', lp[0]); b.setAttribute('dy', '1.1em');
+        t.appendChild(a); t.appendChild(b);
+        t.setAttribute('y', lp[1] - (it.sub ? 9 : 0));
+      } else {
+        t.textContent = it.label;
+      }
+      e.appendChild(t);
+      if (it.sub && !(long && m > 7)) {
+        var s = document.createElementNS(NS, 'text');
+        s.setAttribute('class', 'sub');
+        s.setAttribute('x', lp[0]); s.setAttribute('y', lp[1] + (long && m > 5 && it.label.indexOf(' ') > 0 ? 16 : 13));
+        s.textContent = it.sub;
+        e.appendChild(s);
+      }
+      e.addEventListener('mouseenter', function () { if (state.how !== 'drag') hover(i); });
+      e.addEventListener('click', function () { if (state.how !== 'drag' && state.how !== 'busy') emit('pick:' + i); });
+      g.appendChild(e);
+    });
+    hover(-1);
+  }
+
+  function hover(i) {
+    state.hover = i;
+    var exits = $('exits').children;
+    for (var k = 0; k < exits.length; k++) exits[k].classList.toggle('hot', k === i);
+    var arrow = $('arrow');
+    if (i >= 0 && state.items.length) {
+      var a = i * Math.PI * 2 / state.items.length;
+      var p0 = polar(52, a), p1 = polar(98, a);
+      arrow.setAttribute('d', 'M' + p0 + 'L' + p1);
+      arrow.classList.add('on');
+      $('island').classList.remove('cancel');
+      $('isub').textContent = state.mode === 'tools' ? '이 도구로' : '이 형식으로';
+    } else {
+      arrow.classList.remove('on');
+      if (state.how === 'drag' || state.how === 'click' || state.how === 'demo') {
+        $('isub').textContent = state.how === 'drag' ? '여기서 놓으면 취소' : (state.count > 1 ? state.count + '개 파일' : '고르세요');
+      }
+    }
+  }
+
+  function island(label, sub) { $('ilab').textContent = label; $('isub').textContent = sub; }
+
+  var api = {
+    show: function (d) {
+      setTheme(d.theme);
+      state.how = d.how; state.mode = d.mode; state.items = d.items || []; state.color = (d.kind && d.kind.color) || '#0f6b4f'; state.count = d.count || 0;
+      var ring = $('ring');
+      ring.classList.remove('busy');
+      $('prog').style.opacity = 0;
+      $('island').style.fill = state.color;
+      $('island').classList.remove('cancel');
+      island(d.count > 1 ? String(d.count) : (d.kind ? d.kind.label : ''), '');
+      $('name').textContent = d.name || '';
+      $('name').classList.toggle('on', !!d.name);
+      $('msg').classList.remove('on');
+      api.items({ mode: d.mode, items: d.items });
+      ring.classList.remove('on');
+      void ring.getBoundingClientRect();
+      ring.classList.add('on');
+      if (d.how !== 'drag') document.body.focus();
+    },
+    items: function (d) {
+      state.mode = d.mode; state.items = d.items || [];
+      $('modetext').textContent = state.mode === 'tools' ? '도구 · ⇧ 변환' : '변환 · ⌥ 도구';
+      if (state.how !== 'drag') $('modetext').textContent = state.mode === 'tools' ? '도구 · Tab 변환' : '변환 · Tab 도구';
+      if (state.how === 'demo') $('modetext').textContent = '체험 중';
+      build();
+    },
+    hover: hover,
+    busy: function (d) {
+      state.how = 'busy';
+      $('ring').classList.add('busy');
+      var c = 2 * Math.PI * 81;
+      var pr = $('prog');
+      pr.style.strokeDasharray = c; pr.style.strokeDashoffset = c; pr.style.opacity = 1;
+      island('0%', '');
+      $('name').classList.remove('on');
+      $('msg').innerHTML = '';
+      var b = document.createElement('b'); b.textContent = d.label + (d.mode === 'tools' ? ' 하는 중' : '(으)로 바꾸는 중');
+      var s = document.createElement('small'); s.textContent = d.title || '';
+      $('msg').appendChild(b); $('msg').appendChild(s);
+      $('msg').classList.add('on');
+      $('msg').style.top = 'calc(50% + 66px)';
+    },
+    progress: function (d) {
+      var c = 2 * Math.PI * 81, p = Math.max(0, Math.min(1, d.p || 0));
+      $('prog').style.strokeDashoffset = c * (1 - p);
+      island(Math.round(p * 100) + '%', '');
+      if (d.label) { var s = $('msg').querySelector('small'); if (s) s.textContent = d.label; }
+    },
+    done: function (d) {
+      state.how = 'busy';
+      $('ring').classList.add('busy');
+      var c = 2 * Math.PI * 81;
+      $('prog').style.strokeDashoffset = d.ok ? 0 : c;
+      $('island').style.fill = d.ok ? '#16935f' : (d.skipped ? '#8a929c' : '#d23b3b');
+      island(d.ok ? '✓' : (d.skipped ? '—' : '!'), '');
+      $('msg').innerHTML = '';
+      var b = document.createElement('b'); b.textContent = d.message || (d.ok ? '다 됐어요' : '바꾸지 못했어요');
+      $('msg').appendChild(b);
+      if (d.text) { var s = document.createElement('small'); s.textContent = d.text.length > 140 ? d.text.slice(0, 140) + '…' : d.text; $('msg').appendChild(s); }
+      $('msg').classList.add('on');
+      $('msg').style.top = 'calc(50% + 66px)';
+    },
+    hide: function () {
+      $('ring').classList.remove('on');
+      $('name').classList.remove('on');
+      $('msg').classList.remove('on');
+      state.how = '';
+    },
+    theme: setTheme,
+    _state: state
+  };
+  window.CVT = api;
+
+  // 누르기 · 키보드 (빠른 동작 · 단축키 · 떠 있는 창에서 열었을 때)
+  function angleIndex(x, y) {
+    var r = document.getElementById('ring').getBoundingClientRect();
+    var s = r.width / 480;
+    var dx = (x - r.left) / s - C, dy = (y - r.top) / s - C;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 50 || d > 236 || !state.items.length) return -1;
+    var a = Math.atan2(dx, -dy); if (a < 0) a += Math.PI * 2;
+    var step = Math.PI * 2 / state.items.length;
+    return Math.floor((a + step / 2) / step) % state.items.length;
+  }
+  document.addEventListener('mousemove', function (e) {
+    if (state.how === 'click' || state.how === 'demo') {
+      var i = angleIndex(e.clientX, e.clientY);
+      if (i !== state.hover) hover(i);
+    }
+  });
+  document.addEventListener('mousedown', function (e) {
+    if (document.body.classList.contains('bubble')) { emit('grab'); return; }
+    if (state.how !== 'click' && state.how !== 'demo') return;
+    var i = angleIndex(e.clientX, e.clientY);
+    if (i >= 0) emit('pick:' + i); else emit('cancel');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (state.how !== 'click' && state.how !== 'demo') return;
+    var m = state.items.length;
+    if (e.key === 'Escape') { emit('cancel'); }
+    else if (e.key === 'Enter' || e.key === ' ') { if (state.hover >= 0) emit('pick:' + state.hover); }
+    else if (e.key === 'Tab') { e.preventDefault(); if (state.how !== 'demo') emit('mode'); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); hover(state.hover < 0 ? 0 : (state.hover + 1) % m); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); hover(state.hover < 0 ? m - 1 : (state.hover - 1 + m) % m); }
+    else if (/^[1-9]$/.test(e.key) && +e.key <= m) { emit('pick:' + (+e.key - 1)); }
+  });
+
+  // 파일을 이 창에 놓아도 열리지 않게 (원래 파일은 그대로)
+  var bub = document.getElementById('bubble');
+  ['dragenter', 'dragover'].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; bub.classList.add('over'); });
+  });
+  document.addEventListener('dragleave', function (e) { if (!e.relatedTarget) bub.classList.remove('over'); });
+  document.addEventListener('drop', function (e) {
+    e.preventDefault();
+    bub.classList.remove('over');
+    if (document.body.classList.contains('bubble')) emit('drop');
+  });
+})();
+</script>
+</body>
+</html>
