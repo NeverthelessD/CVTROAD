@@ -33,6 +33,19 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 - 오디오는 MP3 포함.
 - 업데이트: 자동 확인 + 수동 "업데이트 확인" 버튼 + 현재 버전 표시. 피드: `releases/latest.json` (main 브랜치, raw.githubusercontent).
 - 기존 SROAD/YTROAD/LIBROAD 프로젝트와 같은 패턴(app/launcher.sh, releases/, docs/ 가이드 이미지)을 따름.
+- 사용자에게 보이는 글(앱 화면·업데이트 안내·가이드 이미지)에는 GitHub·저장소 이름을 쓰지 않음 ("새 버전이 나오면 앱이 알아서 받아요").
+- 도우미는 손쉬운 사용·입력 모니터링 권한 없이 마우스·키 "상태"만 살펴서 동작하도록 설계.
+- ffmpeg(MP3·영상)는 첫 실행 때 자동으로 받음. 다른 앱(YTROAD·SROAD)이 받아 둔 것이 있으면 복사해서 씀.
+- `releases/`는 출시할 때만 커밋(main). dev에서는 커밋하지 않음.
+
+## 출시 방법
+1. `VERSION` 올리기 → `scripts/build.sh --notes "바뀐 점"` → `releases/CVTROAD-<v>.zip`, `releases/latest.json` 생성
+2. main에 커밋·푸시하면 설치된 앱이 6시간 안에(또는 '업데이트 확인'으로) 받음. releases/에는 최신 zip 3개만 유지.
+
+## 리눅스에서 시험하기
+- `go build -o /tmp/cv ./engine` 후 env: `CVTROAD_SUPPORT`, `CVTROAD_TOKEN`, `CVTROAD_PORT`, `CVTROAD_FFMPEG_DIR=/usr/bin`, `CVTROAD_HELPER_CMD="python3 scripts/test/fakehelper.py"`, `CVTROAD_APP`, `CVTROAD_UPDATE_URL`
+- `python3 scripts/test/make_samples.py <dir>` → `run_matrix.py <engine> <dir> <out>`
+- Playwright는 `LANG=C.UTF-8`로 실행해야 한글 파일명이 들어감 (시험 환경 문제, 앱 문제 아님)
 
 ## 진행 사항
 - [x] 아이콘 (app/)
@@ -40,9 +53,11 @@ scripts/test/   샘플 생성·변환 매트릭스 테스트
 - [x] UI (engine/web)
 - [x] 백그라운드 도우미 (engine/agent)
 - [x] 테스트 스크립트 (scripts/test)
-- [ ] app/Info.plist, app/launcher.sh — .app 번들 조립
-- [ ] 빌드·패키징 스크립트 (scripts/build.sh), VERSION, releases/latest.json
-- [ ] 변환 매트릭스 테스트 실행 및 오류 수정
+- [x] app/Info.plist, app/launcher.sh — .app 번들 조립
+- [x] 빌드·패키징 스크립트 (scripts/build.sh, zipapp.py), VERSION 1.0.0
+- [x] 변환 매트릭스 테스트: 68개 중 67개 통과 (HEIC 저장은 맥 sips 전용이라 리눅스에서만 실패 — 정상)
+- [x] UI 확인 (Playwright, 라이트·다크, 변환 흐름, 도우미·설정 화면) — 콘솔 오류 없음
+- [x] 업데이트 시험: 로컬 피드로 확인 → 내려받기 → sha256 확인 → 앱 교체 → 백업·되돌리기 가능
 - [ ] 사용법·주의사항 한 장 이미지 (docs/CVTROAD_사용가이드.png)
 - [ ] 사용자 맥에 설치·실행 확인, 손쉬운 사용 권한 안내
 - [ ] dev → main 병합, 첫 릴리스 1.0.0
