@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -63,7 +65,18 @@ func notifyOS(title, msg string) {
 		`display notification (item 2 of argv) with title (item 1 of argv) sound name "Glass"`, "-e", "end run", title, msg).Start()
 }
 
-func processAlive(pid int) bool { return syscall.Kill(pid, 0) == nil }
+// processAlive: 살아 있는 프로세스인지 (끝났지만 아직 정리 안 된 "좀비"는 죽은 걸로 봐요)
+func processAlive(pid int) bool {
+	if syscall.Kill(pid, 0) != nil {
+		return false
+	}
+	out, err := exec.Command("/bin/ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return false // ps가 못 찾으면 없는 프로세스
+	}
+	st := strings.TrimSpace(string(out))
+	return st != "" && !strings.HasPrefix(st, "Z")
+}
 
 func diagSignals() []os.Signal { return []os.Signal{syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP} }
 

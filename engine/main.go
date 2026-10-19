@@ -103,6 +103,12 @@ func main() {
 		case "--agent": // 도우미 켜기/끄기/상태 (설치 스크립트 · 시험용)
 			newApp(false)
 			os.Exit(runAgentCmd(os.Args[2:]))
+		default:
+			// 모르는 옵션으로 불렸을 때 엉뚱하게 두 번째 엔진(서버)이 켜지지 않게
+			if strings.HasPrefix(os.Args[1], "-") {
+				fmt.Fprintln(os.Stderr, "cvtroad-engine: 알 수 없는 옵션", os.Args[1])
+				os.Exit(2)
+			}
 		}
 	}
 	runEngine()
