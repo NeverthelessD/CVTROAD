@@ -290,7 +290,7 @@ function init() {
     if (!s.seen) welcome();
     takePending();
     if (j.crash) {
-      toast('지난번에 엔진이 갑자기 멈췄어요. ' + (j.crash.saved ? '진단 파일을 ‘다운로드’ 폴더에 저장했어요 (CVTROAD 진단.txt).' : '진단 정보를 남겼어요.'), 9000);
+      toast('지난번에 엔진이 갑자기 멈췄어요. 이유를 기록해 두었어요.', 7000);
     }
   });
 }

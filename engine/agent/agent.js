@@ -152,8 +152,13 @@ function loadPage(wv, query) {
   wv.loadFileURLAllowingReadAccessToURL(url, fileURL(HERE));
 }
 
+// 원형 메뉴 화면에 명령 보내기.
+// evaluateJavaScript의 완료 콜백 자리에 JXA의 null을 넘기면 macOS 27에서 WebKit이 그 "콜백"을 부르다가
+// 도우미가 통째로 멈춰요(SIGABRT). performSelector로 진짜 nil을 넘겨서 콜백이 아예 없게 해요.
 function js(wv, code) {
-  try { wv.evaluateJavaScriptCompletionHandler(code, null); } catch (e) { log('js: ' + e); }
+  try {
+    wv.performSelectorWithObjectWithObject('evaluateJavaScript:completionHandler:', $(code), $());
+  } catch (e) { log('js: ' + e); }
 }
 
 function theme() { return cfg.appearance || 'system'; }

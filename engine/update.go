@@ -510,6 +510,7 @@ func (u *Updater) Restart(port int, token string) error {
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("다시 시작하지 못했어요: %v", err)
 	}
+	log.Printf("업데이트 뒤 다시 시작해요")
 	go func() {
 		time.Sleep(300 * time.Millisecond)
 		app.shutdown()

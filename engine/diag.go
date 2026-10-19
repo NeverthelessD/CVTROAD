@@ -5,8 +5,8 @@ package main
 //   - Go가 멈추면서 남기는 오류(크래시)를 Support/crash.txt 에 따로 적어요 (debug.SetCrashOutput)
 //   - 종료 신호(TERM·INT·HUP)를 받으면 engine.log 에 적어요. HUP은 무시하고 계속 돌아요.
 //   - 켜질 때 Support/running 이 남아 있고 그 프로세스가 없으면 → 지난번에 갑자기 멈춘 것.
-//     crash.txt · engine.out · engine.log 끝부분을 모아 Support/last-crash.txt 와
-//     다운로드 폴더의 "CVTROAD 진단.txt" 로 저장하고, 앱 화면에 알려요.
+//     crash.txt · engine.out · engine.log 끝부분을 모아 기록 폴더(맥: ~/Library/Logs/CVTROAD)의
+//     last-crash.txt 로 저장하고, 앱 화면에 알려요.
 //   - 백그라운드 작업(goroutine)에서 난 오류는 guard()로 잡아서 엔진 전체가 꺼지지 않게 해요.
 
 import (
@@ -25,7 +25,7 @@ import (
 type crashInfo struct {
 	At      int64  `json:"at"`
 	Summary string `json:"summary"`
-	Saved   string `json:"saved,omitempty"` // 다운로드 폴더에 저장한 진단 파일
+	Saved   string `json:"saved,omitempty"` // 진단 파일 위치
 }
 
 var (
@@ -40,7 +40,7 @@ func (a *App) startDiag() {
 	a.checkPreviousRun()
 	writeFileAtomic(a.runningPath(), []byte(fmt.Sprintf("%d %d %s", os.Getpid(), time.Now().Unix(), build)), 0o644)
 
-	if f, err := os.OpenFile(filepath.Join(a.support, "crash.txt"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
+	if f, err := os.OpenFile(filepath.Join(a.logDir, "crash.txt"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
 		fmt.Fprintf(f, "CVTROAD %s · pid %d · %s 시작\n", build, os.Getpid(), time.Now().Format("2006-01-02 15:04:05"))
 		if err := debug.SetCrashOutput(f, debug.CrashOptions{}); err != nil {
 			log.Printf("diag: crash output: %v", err)
@@ -87,9 +87,9 @@ func (a *App) checkPreviousRun() {
 		return // 아직 살아 있어요 (다른 엔진이 돌고 있음)
 	}
 
-	crash := strings.TrimSpace(readTail(filepath.Join(a.support, "crash.txt"), 24<<10))
-	out := strings.TrimSpace(readTail(filepath.Join(a.support, "engine.out.prev"), 16<<10))
-	lg := strings.TrimSpace(readTail(filepath.Join(a.support, "engine.log"), 12<<10))
+	crash := strings.TrimSpace(readTail(filepath.Join(a.logDir, "crash.txt"), 24<<10))
+	out := strings.TrimSpace(readTail(filepath.Join(a.logDir, "engine.out.prev"), 16<<10))
+	lg := strings.TrimSpace(readTail(filepath.Join(a.logDir, "engine.log"), 12<<10))
 
 	summary := "엔진이 갑자기 멈췄어요 (남은 오류 기록 없음 — 시스템이 강제로 끝냈을 수 있어요)"
 	if i := strings.Index(crash, "\n"); i >= 0 && strings.TrimSpace(crash[i:]) != "" {
@@ -110,15 +110,9 @@ func (a *App) checkPreviousRun() {
 	fmt.Fprintf(&sb, "요약: %s\n\n", summary)
 	fmt.Fprintf(&sb, "── crash.txt ──\n%s\n\n── engine.out (지난번) ──\n%s\n\n── engine.log (끝부분) ──\n%s\n", crash, out, lg)
 	report := sb.String()
-	writeFileAtomic(filepath.Join(a.support, "last-crash.txt"), []byte(report), 0o644)
+	writeFileAtomic(filepath.Join(a.logDir, "last-crash.txt"), []byte(report), 0o644)
 
-	ci := &crashInfo{At: time.Now().UnixMilli(), Summary: summary}
-	if dl := downloadsFolder(); dl != "" {
-		p := filepath.Join(dl, "CVTROAD 진단.txt")
-		if os.WriteFile(p, []byte(report), 0o644) == nil {
-			ci.Saved = p
-		}
-	}
+	ci := &crashInfo{At: time.Now().UnixMilli(), Summary: summary, Saved: filepath.Join(a.logDir, "last-crash.txt")}
 	log.Printf("diag: 지난번 엔진이 갑자기 멈췄어요 — %s", summary)
 	diagMu.Lock()
 	lastCrash = ci

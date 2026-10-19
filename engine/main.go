@@ -83,6 +83,7 @@ type App struct {
 
 	lastSeen atomic.Int64
 	lastPage atomic.Int64 // 열려 있는 앱 창이 마지막으로 물어본 때
+	logDir   string       // 기록(로그) 폴더 — 맥: ~/Library/Logs/CVTROAD
 	server   bool
 }
 
@@ -127,7 +128,9 @@ func newApp(server bool) {
 	if server {
 		logName = "engine.log"
 	}
-	if f, err := os.OpenFile(filepath.Join(support, logName), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
+	app.logDir = logDirFor(home, support)
+	os.MkdirAll(app.logDir, 0o755)
+	if f, err := os.OpenFile(filepath.Join(app.logDir, logName), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
 		if st, _ := f.Stat(); st != nil && st.Size() > 2<<20 {
 			f.Truncate(0)
 		}
@@ -186,6 +189,17 @@ func cleanOld(dir string, days int) {
 	}
 }
 
+// logDirFor: 맥에서는 다른 앱들처럼 ~/Library/Logs/CVTROAD 에 기록을 남겨요 (콘솔 앱에서도 보여요)
+func logDirFor(home, support string) string {
+	if p := os.Getenv("CVTROAD_LOGS"); p != "" {
+		return p
+	}
+	if runtime.GOOS == "darwin" && home != "" {
+		return filepath.Join(home, "Library", "Logs", "CVTROAD")
+	}
+	return support
+}
+
 func defaultSupportDir(home, name string) string {
 	switch runtime.GOOS {
 	case "darwin":
@@ -225,6 +239,7 @@ func (a *App) idleWatcher() {
 		}
 		idleTicks++
 		if idleTicks*20 >= 7200 {
+			log.Printf("2시간 동안 쓰지 않아서 쉬어요")
 			a.shutdown()
 		}
 	}
@@ -387,6 +402,7 @@ func (a *App) routes() http.Handler {
 		writeJSON(w, map[string]any{"ok": true, "build": build, "page": page})
 	})
 	api("/api/quit", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("끄기 요청을 받았어요 (%s)", r.UserAgent())
 		writeJSON(w, map[string]any{"ok": true})
 		go func() { time.Sleep(300 * time.Millisecond); a.shutdown() }()
 	})
